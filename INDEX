@@ -1,0 +1,6 @@
+dstable		density of a stable distribution
+pstable		c.d.f. of a stable distribution
+rstable		generation of random deviates from a stable distribution
+hstable		intensity function of a	stable distribution
+stableglm	generalized linear models based on the stable distribution
+
