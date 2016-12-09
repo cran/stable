@@ -1,10 +1,40 @@
+/*
+ *  stable : A Library of Functions for Stable Distributions
+ *  Copyright (C) 1998, 1999, 2000, 2001 P. Lambert and J.K. Lindsey
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ *  SYNOPSIS
+ *
+ *  void stable(int *n, double *y, double *beta, double *alpha, int *npt,
+ *	    double *up, double *eps, int *type, int *err, double *ffy)
+ *  void pstable(int *n, double *y, double *beta, double *alpha,
+ *	    double *eps, int *err, double *ffy)
+ *
+ *  DESCRIPTION
+ *
+ *    Functions to compute the density and cdf of a stable distribution
+ *
+ */
+
 #include <math.h>
 #include <stddef.h>
-
-extern double	R_NaN;			/* IEEE NaN or -DBL_MAX */
+#include "R.h"
 
 static int nn;
-static double alphai, yi, setai, cetai;
+static double alphai, etai, setai, cetai, yi, yyi;
 
 static double fcn1(double s){
   double sa;
@@ -14,50 +44,58 @@ static double fcn1(double s){
 static double fcn2(double s){
   double sa;
   sa=pow(s,-alphai);
-  return(cos(-yi/s+sa*setai)*exp(-sa*cetai))/(s*s);}
+  return(cos(-yi/s+sa*setai)*exp(-sa*cetai)/(s*s));}
 
-static void interp(double a[], double fa[], int n, double *f, double *df)
+static double fcn3(double s){
+  double sa;
+  sa=pow(s,alphai);
+  return((sin(yyi*s-sa*setai)/s)*exp(-sa*cetai));}
+
+static double fcn4(double s){
+  double sa;
+  sa=pow(s,-alphai);
+  return((sin(yyi/s-sa*setai)*s)*exp(-sa*cetai)/(s*s));}
+
+/* integration routines: stripped down version of Romberg integration
+   from rmutil library */
+
+static void interp(double x[], double fx[], double *f, double *df)
 {
-  int i, j, ni=1;
-  double diff1, diff2, tmp1, tmp2, lim1, lim2, *tab1, *tab2;
+  int i, j, ni=0;
+  double diff1, diff2, tmp1, tmp2, lim1, lim2, tab1[5], tab2[5];
  
-  tmp1=fabs(a[1]);
-  tab1=(double*)malloc((size_t)((n+1)*sizeof(double)));
-  tab2=(double*)malloc((size_t)((n+1)*sizeof(double)));
-  if(!tab1||!tab2)return;
-  for(i=1;i<=n;i++){
-    tmp2=fabs(a[i]);
+  tmp1=fabs(x[0]);
+  for(i=0;i<5;i++){
+    tmp2=fabs(x[i]);
     if(tmp2<tmp1){
       ni=i;
       tmp1=tmp2;}
-    tab1[i]=fa[i];
-    tab2[i]=fa[i];}
-  *f=fa[ni--];
-  for(j=1;j<n;j++){
-    for(i=1;i<=n-j;i++){
-      lim1=a[i];
-      lim2=a[i+j];
+    tab1[i]=fx[i];
+    tab2[i]=fx[i];}
+  *f=fx[ni--];
+  for(j=0;j<4;j++){
+    for(i=0;i<=4-j;i++){
+      lim1=x[i];
+      lim2=x[i+j+1];
       diff1=tab1[i+1]-tab2[i];
       diff2=lim1-lim2;
-      if(diff2==0.0)goto end;
+      if(diff2==0.0)return;
       diff2=diff1/diff2;
       tab2[i]=lim2*diff2;
       tab1[i]=lim1*diff2;}
-    *df=2*ni<(n-j)?tab1[ni+1]:tab2[ni--];
-    *f+=*df;}
- end: free((char *)tab2);
-  free((char *)tab1);}
+    *df=2*ni<(2-j)?tab1[ni+1]:tab2[ni--];
+    *f+=*df;}}
 
-#define FUNC(x) ((*fcn)(x))
+#define FCN(x) ((*fcn)(x))
 
-static double mpr(double (*fcn)(double), int n)
+static double evalfn(double (*fcn)(double), int n)
 {
   double x, nn, tmpsum, pnt1, pnt2;
   static double sum;
   int i,j;
 
   if (n==1){
-    sum=FUNC(0.5);
+    sum=FCN(0.5);
     return(sum);}
   else {
     for(i=1,j=1;j<n-1;j++) i*=3;
@@ -67,37 +105,41 @@ static double mpr(double (*fcn)(double), int n)
     x=0.5*pnt1;
     tmpsum=0.0;
     for(j=1;j<=i;j++){
-      tmpsum+=FUNC(x);
+      tmpsum+=FCN(x);
       x+=pnt2;
-      tmpsum+=FUNC(x);
+      tmpsum+=FCN(x);
       x+=pnt1;}
     sum=(sum+tmpsum/nn)/3.0;
     return(sum);}}
 
-double romberg(double (*fcn)(double), double eps)
+static double romberg(double (*fcn)(double), double eps)
 {
-  int j;
-  double sum,errsum,x[17],fx[17];
+  int j,j1;
+  double sum,errsum=0,x[16],fx[16];
 
-  x[1]=1.0;
-  for(j=1;j<=16;j++){
-    fx[j]=mpr(fcn,j);
-    if(j>=5){
-      interp(&x[j-5],&fx[j-5],5,&sum,&errsum);
+  x[0]=1.0;
+  for(j=0;j<16;j++){
+    j1=j+1;
+    fx[j]=evalfn(fcn,j1);
+    if(j1>=5){
+      interp(&x[j1-5],&fx[j1-5],&sum,&errsum);
       if(fabs(errsum)<eps*fabs(sum))return(sum);}
-    x[j+1]=x[j]/9.0;
-    fx[j+1]=fx[j];}
-  return(R_NaN);}
+    x[j1]=x[j]/9.0;
+    fx[j1]=fx[j];}
+  sum=R_NaN;
+  return(sum);}
 
-void stable(int *n, double *y, double *beta, double *alpha, int *npt, double *up, double *eps, int *type, int *err, double *ffy)
+/* density of a stable distribution */
+void stable(int *n, double *y, double *beta, double *alpha, int *npt,
+	    double *up, double *eps, int *type, int *err, double *ffy)
 {
   int i, j;
   double h, s, *eta, *seta, *ceta, *sa;
   *err=0;
-  eta=(double*)malloc((size_t)((*n+1)*sizeof(double)));
-  seta=(double*)malloc((size_t)((*n+1)*sizeof(double)));
-  ceta=(double*)malloc((size_t)((*n+1)*sizeof(double)));
-  sa=(double*)malloc((size_t)((*n+1)*sizeof(double)));
+  eta=(double*)R_alloc((size_t)(*n),sizeof(double));
+  seta=(double*)R_alloc((size_t)(*n),sizeof(double));
+  ceta=(double*)R_alloc((size_t)(*n),sizeof(double));
+  sa=(double*)R_alloc((size_t)(*n),sizeof(double));
   nn=*n;
   if(!eta||!seta||!ceta||!sa){
     *err=1;
@@ -122,9 +164,23 @@ void stable(int *n, double *y, double *beta, double *alpha, int *npt, double *up
       yi=y[i];
       setai=seta[i];
       cetai=ceta[i];
-      ffy[i]=romberg(fcn1, *eps)+romberg(fcn2, *eps);}
-    for(i=0;i<*n;i++)ffy[i]=ffy[i]/M_PI;}
-  free((char *)sa);
-  free((char *)ceta);
-  free((char *)seta);
-  free((char *)eta);}
+      ffy[i]=(romberg(fcn1, *eps)+romberg(fcn2, *eps))/M_PI;}}}
+
+/* cdf of a stable distribution */
+void pstable(int *n, double *y, double *beta, double *alpha,
+	     double *eps, int *err, double *ffy)
+{
+  int i;
+  *err=0;
+  nn=*n;
+  for(i=0;i<*n;i++){
+    ffy[i]=0.0;
+    etai=beta[i]*(1.0-fabs(1.0-alpha[i]))*M_PI/2.0;
+    setai=sin(etai);
+    cetai=cos(etai);
+    alphai=alpha[i];
+    yyi=y[i];
+    if(etai==0.&&yyi==0)
+      ffy[i]=0.5;
+    else ffy[i]=0.5+(romberg(fcn3, *eps)+romberg(fcn4, *eps))/M_PI;}}
+
