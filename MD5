@@ -1,12 +1,12 @@
 ad4652e2dcfd4a0ecf91a2c01a7defd5 *COPYING
-70bbf8c1abb48de5bd13c86ced56c9d7 *DESCRIPTION
+e15ad9e9d94a61d778d51583dcc91133 *DESCRIPTION
 701d314a82d6c95df0df0dc56daba125 *NAMESPACE
 1ffe5adec871ab3b30830e04ffd8463c *NEWS.md
 edd83ce534eeedbe2771db7f2b2f7f1a *R/stable-package.R
 9d6833fe64e8bc724073f0546de1fe80 *R/stable.r
-e9e2f1491bba4cac7edf36cd2dd0b6ed *README.md
+6d23d838e513dfe247c73cbbbac19f9e *README.md
 58721e92690853dc2f88ce17c171039d *man/Links.Rd
 27ae90b91f586f34849e7c99e6e06b43 *man/Stable.Rd
 1a4b139806cd88a5e196c5b52b164c6c *man/stable.mode.Rd
 c21e78a0e5f07955c753c31faeae1775 *man/stablereg.Rd
-7b9b0665dfcdfaa96684974e57ca14ea *src/stable.c
+26fc2833267b52ce06f3fee5689f6055 *src/stable.c
