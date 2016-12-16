@@ -1,5 +1,5 @@
 Package: stable
-Version: 1.1.1
+Version: 1.1.2
 Title: Probability Functions and Generalized Regression Models for
         Stable Distributions
 Authors@R: c(
@@ -10,7 +10,8 @@ Authors@R: c(
 Depends: R (>= 1.4), rmutil
 Description: Density, distribution, quantile and hazard functions of a
     stable variate; generalized regression models for the parameters
-    of a stable distribution.
+    of a stable distribution. See the README for how to make equivalent calls
+    to those of 'stabledist'. 
 License: GPL (>= 2)
 URL: http://www.commanster.eu/rcode.html
 BugReports: https:/github.com/swihart/stable/issues
@@ -19,11 +20,11 @@ LazyData: true
 LazyLoad: true
 RoxygenNote: 5.0.1
 NeedsCompilation: yes
-Packaged: 2016-12-12 19:33:04 UTC; swihartbj
+Packaged: 2016-12-16 02:31:58 UTC; swihartbj
 Author: Bruce Swihart [cre, aut],
   Jim Lindsey [aut] (Jim created this package, Bruce is maintaining the
     CRAN version),
   Philippe Lambert [aut]
 Maintainer: Bruce Swihart <bruce.swihart@gmail.com>
 Repository: CRAN
-Date/Publication: 2016-12-13 02:17:38
+Date/Publication: 2016-12-16 08:34:06
